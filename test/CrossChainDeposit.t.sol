@@ -119,12 +119,13 @@ contract CrossChainDepositTest is Test {
         uint256 balanceAfterOnFuji = IERC20(FUJI_USDC_TOKEN).balanceOf(bob);
 
         // ccipLocalSimulatorFork.switchChainAndRouteMessage(ethSepoliaFork);
-        // uint256 balanceAfterOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(bob);
+        // uint256 balanceAfterOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(address(crossChainReceiver));
+        // uint256 cUsdcBalanceOfCrossChainReceiver = IERC20(COMET).balanceOf(address(crossChainReceiver));
+        // console.log("Balance after on sepolia: ", cUsdcBalanceOfCrossChainReceiver);
 
         // Check if USDC was transferred
         assertEq(balanceAfterOnFuji, balanceBeforeOnFuji - amount);
         // assertEq compound usdc token balance of crossChainReceiver
-        // assertEq(balanceAfterOnSepolia, balanceBeforeOnSepolia + amount); // Check this once as to why the balance has not increased even aftre warp and roll
     }
 
 }
