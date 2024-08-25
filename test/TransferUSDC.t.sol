@@ -53,7 +53,7 @@ contract TransferUSDCTest is Test {
 
     function testTransferUsdcCrossChain() public {
         // Step 2) On Avalanche Fuji, call allowlistDestinationChain function
-        
+
         // vm.selectFork(ethSepoliaFork);
         // uint256 balanceBeforeOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(bob);
 
