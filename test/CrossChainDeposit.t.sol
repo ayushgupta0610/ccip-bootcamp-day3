@@ -6,6 +6,8 @@ import {TransferUSDC} from "../src/TransferUSDC.sol";
 import {SwapTestnetUSDC} from "../src/SwapTestnetUSDC.sol";
 import {CrossChainReceiver} from "../src/CrossChainReceiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {CCIPLocalSimulatorFork, Register} from "@chainlink/local/src/ccip/CCIPLocalSimulatorFork.sol";
+
 
 contract CrossChainDepositTest is Test {
     
@@ -27,6 +29,7 @@ contract CrossChainDepositTest is Test {
     TransferUSDC private fujiTransferUSDC;
     SwapTestnetUSDC private swapTestnetUSDC;
     CrossChainReceiver private crossChainReceiver;
+    CCIPLocalSimulatorFork public ccipLocalSimulatorFork;
 
     address bob;
     uint256 avaxFujiFork;
@@ -40,6 +43,9 @@ contract CrossChainDepositTest is Test {
         string memory ETHEREUM_SEPOLIA_RPC_URL = vm.envString("ETHEREUM_SEPOLIA_RPC_URL");
         avaxFujiFork = vm.createSelectFork(AVALANCHE_FUJI_RPC_URL);
         ethSepoliaFork = vm.createFork(ETHEREUM_SEPOLIA_RPC_URL);
+
+        ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
+        vm.makePersistent(address(ccipLocalSimulatorFork));
 
         // Step 1) Deploy TransferUSDC.sol to Avalanche Fuji
         assertEq(vm.activeFork(), avaxFujiFork);
@@ -78,47 +84,47 @@ contract CrossChainDepositTest is Test {
         crossChainReceiver.allowlistSender(address(fujiTransferUSDC), true); 
     }
 
-    // function testDepositCrossChain() public {
-    //     // Step 4) On Avalanche Fuji, call allowlistDestinationChain function
-    //     // vm.selectFork(ethSepoliaFork);
-    //     // uint256 balanceBeforeOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(bob);
+    function testDepositCrossChain() public {
+        // Step 4) On Avalanche Fuji, call allowlistDestinationChain function
+        // vm.selectFork(ethSepoliaFork);
+        // uint256 balanceBeforeOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(bob);
 
-    //     vm.selectFork(avaxFujiFork);
-    //     vm.startPrank(bob);
-    //     uint256 balanceBeforeOnFuji = IERC20(FUJI_USDC_TOKEN).balanceOf(bob);
+        vm.selectFork(avaxFujiFork);
+        uint256 balanceBeforeOnFuji = IERC20(FUJI_USDC_TOKEN).balanceOf(bob);
 
-    //     fujiTransferUSDC.allowlistDestinationChain(SEPOLIA_CHAIN_SELECTOR, true);
-    //     console.log("TransferUSDC allowlistDestinationChain to: ", true);
+        vm.startPrank(bob);
+        fujiTransferUSDC.allowlistDestinationChain(SEPOLIA_CHAIN_SELECTOR, true);
+        console.log("TransferUSDC allowlistDestinationChain to: ", true);
         
-    //     // On Avalanche Fuji, fund TransferUSDC.sol with 3 LINK
-    //     IERC20(FUJI_LINK_TOKEN).transfer(address(fujiTransferUSDC), 3 ether);
+        // Step 3) On Avalanche Fuji, fund TransferUSDC.sol with 3 LINK
+        ccipLocalSimulatorFork.requestLinkFromFaucet(address(fujiTransferUSDC), 3 ether);
 
-    //     // On Avalanche Fuji, call approve and transferUsdc function to crossChainReceiver
-    //     uint256 amount = 1000_000;
-    //     IERC20(FUJI_USDC_TOKEN).approve(address(fujiTransferUSDC), amount);
+        // On Avalanche Fuji, call approve and transferUsdc function to crossChainReceiver
+        uint256 amount = 1000_000;
+        vm.prank(bob);
+        IERC20(FUJI_USDC_TOKEN).approve(address(fujiTransferUSDC), amount);
 
-    //     console.log("FUJI_USDC_TOKEN approved to: ", address(fujiTransferUSDC));
-    //     uint64 gasLimit = 500_000; // TODO: Calculate gas limit: https://docs.chain.link/ccip/tutorials/ccipreceive-gaslimit
-    //     fujiTransferUSDC.transferUsdc(
-    //         SEPOLIA_CHAIN_SELECTOR,
-    //         address(crossChainReceiver),
-    //         amount,
-    //         gasLimit
-    //     );
-    //     vm.stopPrank();
+        uint64 gasLimit = 500_000; // TODO: Calculate gas limit: https://docs.chain.link/ccip/tutorials/ccipreceive-gaslimit
+        vm.prank(bob);
+        fujiTransferUSDC.transferUsdc(
+            SEPOLIA_CHAIN_SELECTOR,
+            address(crossChainReceiver),
+            amount,
+            gasLimit
+        );
+        vm.stopPrank();
 
-    //     // Step 5) On Ethereum Sepolia, check if USDC was succesfully transferred
-    //     // Get user's USDC balance on both chains before and after transfer
-    //     uint256 balanceAfterOnFuji = IERC20(FUJI_USDC_TOKEN).balanceOf(bob);
+        // Step 5) On Ethereum Sepolia, check if USDC was succesfully transferred
+        // Get user's USDC balance on both chains before and after transfer
+        uint256 balanceAfterOnFuji = IERC20(FUJI_USDC_TOKEN).balanceOf(bob);
 
-    //     vm.selectFork(ethSepoliaFork);
-    //     // vm.warp(block.timestamp + 1000000); // Increase time to allow for cross-chain transfer
-    //     // vm.roll(block.number + 1000000); // Increase block number to allow for cross-chain transfer
-    //     // uint256 balanceAfterOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(bob);
+        // ccipLocalSimulatorFork.switchChainAndRouteMessage(ethSepoliaFork);
+        // uint256 balanceAfterOnSepolia = IERC20(SEPOLIA_USDC_TOKEN).balanceOf(bob);
 
-    //     // Check if USDC was transferred
-    //     assertEq(balanceAfterOnFuji, balanceBeforeOnFuji - amount);
-    //     // assertEq(balanceAfterOnSepolia, balanceBeforeOnSepolia + amount); // Check this once as to why the balance has not increased even aftre warp and roll
-    // }
+        // Check if USDC was transferred
+        assertEq(balanceAfterOnFuji, balanceBeforeOnFuji - amount);
+        // assertEq compound usdc token balance of crossChainReceiver
+        // assertEq(balanceAfterOnSepolia, balanceBeforeOnSepolia + amount); // Check this once as to why the balance has not increased even aftre warp and roll
+    }
 
 }
