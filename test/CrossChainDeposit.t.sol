@@ -103,7 +103,7 @@ contract CrossChainDepositTestOld is Test {
         vm.prank(BOB);
         IERC20(FUJI_USDC_TOKEN).approve(address(fujiTransferUSDC), amount);
 
-        uint64 gasLimit = 211393; // TODO: Calculate gas limit: https://docs.chain.link/ccip/tutorials/ccipreceive-gaslimit
+        uint64 gasLimit = 295324; 
         vm.prank(BOB);
         fujiTransferUSDC.transferUsdc(
             SEPOLIA_CHAIN_SELECTOR,
